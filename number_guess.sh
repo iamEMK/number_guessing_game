@@ -37,4 +37,36 @@ while true; do
     echo "That is not an integer, guess again:"
     continue
   fi
-  
+  # Increment tries
+  ((TRIES++))
+
+  # Check guess
+  if [[ $GUESS -eq $SECRET_NUMBER ]]
+  then
+    echo "You guessed it in $TRIES tries. The secret number was $SECRET_NUMBER. Nice job!"
+    
+    # Update user statistics
+    if [[ -z $USER_INFO ]]
+    then
+      # First game for new user
+      UPDATE_STATS=$($PSQL "UPDATE users SET games_played = 1, best_game = $TRIES WHERE username = '$USERNAME'")
+    else
+      # Update existing user's stats
+      echo "$USER_INFO" | while IFS="|" read GAMES_PLAYED BEST_GAME
+      do
+        if [[ $BEST_GAME -eq 0 || $TRIES -lt $BEST_GAME ]]
+        then
+          BEST_GAME=$TRIES
+        fi
+        ((GAMES_PLAYED++))
+        UPDATE_STATS=$($PSQL "UPDATE users SET games_played = $GAMES_PLAYED, best_game = $BEST_GAME WHERE username = '$USERNAME'")
+      done
+    fi
+    break
+  elif [[ $GUESS -lt $SECRET_NUMBER ]]
+  then
+    echo "It's higher than that, guess again:"
+  else
+    echo "It's lower than that, guess again:"
+  fi
+done
